@@ -336,7 +336,9 @@ bl printf
 ldmfd sp!,{r4,lr}
 bx lr
 
-/* Function to assign points: r2 will store first team's points, r3 instead second team's points */
+/* Function to assign points: r2 will store first team's points, r3 instead second team's points. The rules are
+ * if a team wins => 3 points, if it looses => 0 points, tie with no goals => 1 point each, ties with goals => 2 points each. */
+ 
 assign_points:
 stmfd sp!,{r0-r3,lr}
 
@@ -351,7 +353,8 @@ cmp r0,r1
  * To do that, we append to the instruction b label (unconditional jump)
  * a suffix, mi or eq in this case, that means that if, checking the processor's flags
  * we find that r0 is less than r1, we've to jump to less goals, instead if the two
- * are equal, jump to equgoals */
+ * are equal, jump to equgoals. The branch syntax is the following: 
+ * b label jumps directly to the code section in which we have label:*/
  
 bmi lessgoals
 beq equgoals
@@ -397,7 +400,8 @@ print_rank:
 stmfd sp!,{r5-r8,lr}
 
 /* Reorder rank: load each team and each team's points, r5:first team, r1:first
- * team's points, and so on */
+ * team's points, and so on. r4 stores the point array's base address, r0 the group array's base address. */
+ 
 ldrb r1,[r4]
 ldrb r2,[r4,#0x1]
 ldrb r3,[r4,#0x2]
@@ -405,7 +409,8 @@ ldrb r5,[r0]
 ldrb r6,[r0,#0x1]
 ldrb r7,[r0,#0x2]
 
-/* Compare first team's points with the second one: if the first has less points * then swap the two (both in the ranking and in the point's ranking) */
+/* Compare first team's points (r1) with the second one (r2): if the first has less points then swap the two (both in the ranking and in
+ * the point's ranking). In order to do that, we use mov with a temporary register (r8) to do the swap (mov rx,ry => rx <- ry) */
 cmp r1,r2
 bge scndcmp
 mov r8,r5
@@ -415,7 +420,7 @@ mov r8,r1
 mov r1,r2
 mov r2,r8
 
-/* Compare first team's points with the third one: if the first has less
+/* Compare first team's points (r1) with the third one (r3): if the first has less
  * points, then swap the two (as before)  */
 scndcmp:
 
@@ -439,7 +444,7 @@ mov r8,r5
 mov r5,r7
 mov r7,r5
 
-/* Finally, check also second and third team and the subscription as well
+/* Finally, check also second (r2) and third team (r3) and the subscription as well
  * as before  */
 thrdcmp:
 
@@ -478,10 +483,15 @@ ldr r0,=rankmsg
 bl printf
 ldmfd sp!,{r0-r3}
 
+/* Store in r5 the number of iterations */
 mov r5,#0x3
 eor r6,r6
 
 loop:
+
+/* To print the ranking, load in r1 the team and in r3 its points, post incrementing r0 and r4 by one (first load
+ * then increment the pointer), then arrange r1 and r2 to print the team's name as before (r1=letter, r2=number)
+ * convert them in ascii mode by adding 0x37 to r1 and 0x30 to r2, keep in r3 the points and finally print everything. */
 
 ldrb r1,[r0],#0x1
 ldrb r3,[r4],#0x1
@@ -506,6 +516,7 @@ bx lr
 find_fourth:
 stmfd sp!,{r4-r6,lr}
 
+/* Load in r4, r5 and r6 the second classified for each team */
 ldr r4,=group1
 ldrb r4,[r4,#0x1]
 ldr r5,=group2
@@ -544,7 +555,10 @@ semifinals:
 stmfd sp!,{r4,r5,lr}
 
 /* Print the semifinal message and ask the user for the first team's
- * number of goals */
+ * number of goals. The string has been loaded in r0 in the main, while r1 and r2
+ * store the teams that will play the match. At first, print and ask for the first team's
+ * number of goals. */
+ 
 stmfd sp!,{r0-r3}
 bl printf
 ldmfd sp!,{r0-r3}
@@ -558,7 +572,7 @@ bl scanf
 
 ldmfd sp!,{r0-r3}
 
-/* And then ask for the second team's number of goals */
+/* And then ask for the second team's number of goals. */
 stmfd sp!,{r1}
 mov r1,r2
 
@@ -574,7 +588,9 @@ ldmfd sp!,{r0-r3}
 ldmfd sp!,{r1}
 
 /* In order to determine who wins, check the number of goals per team (NO TIE
- * IS ALLOWED), then store the winner in memory */
+ * IS ALLOWED), then store the winner in memory. The memory address is inside
+ * r3. */
+ 
 ldr r4,=res1
 ldrb r4,[r4]
 ldr r5,=res2
@@ -593,7 +609,8 @@ end:
 ldmfd sp!,{r4,r5,lr}
 bx lr
 
-/* Play the final */
+/* Play the final. The function is quite similar to the semifinals one, the only difference is that here we
+ * don't have to save anything into memory, on the contrary the only thing to do is to print the winner. */
 final:
 stmfd sp!,{r4,r5,lr}
 
@@ -651,9 +668,16 @@ ldmfd sp!,{r0-r3}
 
 ldmfd sp!,{r4,r5,lr}
 bx lr
+
+/* Here is where the main begins, the assembler will start the execution from here. */
+
 	.global main
 
 main:
+
+/* The first thing to do is to store the link register in order to come back once the program has termined. Then, we
+ * can move on to the matches regarding the first group, following with the second and finally the third group.
+ * Next, it's necessary to find the fourth classified and then we can play the semifinals and the final. */
 
 	stmfd sp!,{lr}
 	
@@ -664,7 +688,8 @@ main:
 	ldmfd sp!,{r0-r3}
 
 	/* r0 will be the pointer to the group base address, 
-	 * r4 the one to the points array */
+	 * r4 the one to the points array. This will be valid
+	 * even for group B and C matches. */
 	ldr r0,=group1
 	ldr r4,=point1
 
@@ -692,7 +717,8 @@ main:
 
 	bl insert_results
 
-	/* Check who's the fourth */
+	/* Check who's the fourth. Before calling the procedure, load each
+	 * second classified team's points. */
 	ldr r0,=point1
 	ldr r1,=point2
 	ldr r2,=point3
@@ -702,7 +728,8 @@ main:
 	
 	bl find_fourth
 
-	/* Play semifinals */
+	/* Play semifinals, after loading in r1 and r2 the A's and B's first classified and
+	 * in r3 the memory location in which the winner will be stored */
 	ldr r0,=semi1msg
 	ldr r3,=semi1
 	ldr r1,=group1
@@ -711,7 +738,9 @@ main:
 	ldrb r2,[r2]
 
 	bl semifinals
-
+	
+	/* As before, play the semifinals, this time loading the C's group first classified in r1
+	 * and the fourth classified in r2 */
 	ldr r0,=semi2msg
 	ldr r3,=semi2
 	ldr r1,=group3
@@ -721,7 +750,7 @@ main:
 
 	bl semifinals
 
-	/* Play final */
+	/* Finally, load the two finalists in r1 and r2 and play the final */
 	ldr r0,=finmsg
 	ldr r1,=semi1
 	ldrb r1,[r1]
@@ -730,5 +759,6 @@ main:
 
 	bl final
 
+	/* Pop the link register from the stack and end this program */
 	ldmfd sp!,{lr}
 	bx lr
