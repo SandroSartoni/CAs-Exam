@@ -125,8 +125,7 @@ thrdrnd: .asciz "Third round\n"
 semi1msg: .asciz "First semifinal\n"
 semi2msg: .asciz "Second semifinal\n"
 finmsg: .asciz "Final\n"
-winmsg: .asciz "The winner is team %c%c\n"
-rankmsg: .asciz "Rank:\n"
+winmsg: .asciz "The winner is team %c%c\n"rankmsg: .asciz "Rank:\n"
 str: .asciz "%c%c: "
 strpoint: .asciz "%c%c: %d\n"
 
@@ -181,7 +180,7 @@ stp x0,x4,[sp,-16]!
  * ldp loads a pair of variables from the memory, in this case it pops two registers from the stack, updating 
  * the stack pointer after the pop. In this case push and pop are needed in order to preserve the content of 
  * x0 and x4 that are modified by printf. This function modifies other registers too, but they don't store anything
- * interesting, so preserving it is pointless. */
+ * interesting, so preserving them is pointless. */
 
 ldr x0,=firstrnd
 bl printf
@@ -231,9 +230,9 @@ ldrb w0,[x0]
 ldr x1,=res2
 ldrb w1,[x1]
 
-/* eor performs the xor, in particular xoring r5 with r5 itself resets that register. mov r6,#0x1 copies
- * 1 inside r6. ldrb r2,[r4,r5] loads a byte from memory at the address provided by the content of r4, the
- * base address, and r5, the offset.*/
+/* eor performs the xor, in particular xoring x5 with x5 itself resets that register. mov x6,#0x1 copies
+ * 1 inside x6. ldrb w2,[x4,x5] loads a byte from memory at the address provided by the content of x4, the
+ * base address, and x5, the offset.*/
 
 eor x5,x5,x5
 mov x6,0x1
@@ -373,7 +372,9 @@ stp x4,x30,[sp,-16]!
 and w2,w1,0xF
 lsr w1,w1,0x4
 
-/* Convert in ascii */
+/* Convert in ascii: since the output format is a character, we want to convert these values in their relative ascii version
+ * In particular: we add 0x37 to w1 to convert it to a letter (A, B or C), and 0x30 to w2 to convert it in a number (1, 2 or 3)*/
+ 
 add w1,w1,0x37
 add w2,w2,0x30
 ldr x0,=str
@@ -382,15 +383,29 @@ bl printf
 ldp x4,x30,[sp],16
 ret
 
-/* Function to assign points */
+/* Function to assign points: x2 will store first team's points, x3 instead second team's points. The rules are
+ * if a team wins => 3 points, if it looses => 0 points, tie with no goals => 1 point each, ties with goals => 2 points each. */
+ 
 assign_points:
 str x30,[sp,-16]!
 
-/* Check which group has scored the highest number of goals*/
+/* Check which group has scored the highest number of goals.
+ * cmp subtracts from the first register the second one, it doesn't store the result anywhere but it updates
+ * the processor's flags. */
+ 
 cmp w0,w1
 
 /* If the first team has scored less goals than the second, jump to lessgoals
- * if instead they've scored the same amount of goals, go to equgoals */
+ * if instead they've scored the same amount of goals, go to equgoals.
+ * To do that, we append to the instruction b label (unconditional jump)
+ * a suffix, mi or eq in this case, that means that if, checking the processor's flags
+ * we find that r0 is less than r1, we've to jump to less goals, instead if the two
+ * are equal, jump to equgoals. The branch syntax is the following: 
+ * b label jumps directly to the code section in which we have label:
+ * In 32-bits assembly most instructions have the possibility to append the suffix, that
+ * is to be conditionally executed, in the 64-bits version only few instructions can still
+ * be conditonally executed, one of these is the branch instruction. */
+
 bmi lessgoals
 beq equgoals
 
@@ -408,6 +423,8 @@ b moveon
  * at least one goal has been scored, if not go to nogoals */
 equgoals:
 
+/* This instruction is "compare and branch if 0", in this way we can do the comparison and the branch
+ * in one instruction. */ 
 cbz w0,nogoal
 
 add w2,w2,0x2
@@ -422,6 +439,7 @@ add w3,w3,0x1
 /* Save in memory the points */
 moveon:
 
+/* Store points of both teams in memory, as bytes */
 strb w2,[x4,x5]
 strb w3,[x4,x6]
 
@@ -433,7 +451,8 @@ print_rank:
 stp x8,x30,[sp,-16]!
 
 /* Reorder rank: load each team and each team's points, w5:first team, w1:first
- * team's points and so on */
+ * team's points and so on. x4 stores the point array's base address, x0 the group array's base address. */
+ 
 ldrb w1,[x4]
 ldrb w2,[x4,0x1]
 ldrb w3,[x4,0x2]
@@ -441,8 +460,9 @@ ldrb w5,[x0]
 ldrb w6,[x0,0x1]
 ldrb w7,[x0,0x2]
 
-/* Compare first team's points with the second one: if the first has less points
- * then swap the two (both in the ranking and in the point's ranking) */
+/* Compare first team's points (w1) with the second one (w2): if the first has less points then swap the two (both in the ranking and in
+ * the point's ranking). In order to do that, we use mov with a temporary register (w8) to do the swap (mov xa,xb => xa <- xb) */
+
 cmp w1,w2
 bge scndcmp
 mov w8,w5
@@ -452,7 +472,7 @@ mov w8,w1
 mov w1,w2
 mov w2,w8
 
-/* Compare first team's points with the third one: if the first has less
+/* Compare first team's points (w1) with the third one (w3): if the first has less
  * points, then swap the two (as before) */
 scndcmp:
 
@@ -476,7 +496,7 @@ mov w8,w5
 mov w5,w7
 mov w7,w5
 
-/* Finally, check also second and third team, and the subscription as well
+/* Finally, check also second (w2) and third team (w3), and the subscription as well
  * as before */
 thrdcmp:
 
@@ -517,9 +537,14 @@ bl printf
 
 ldp x0,x4,[sp],16
 
+/* Copy in w5 the number of iterations */
 mov w5,#0x3
 
 loop:
+
+/* To print the ranking, load in w1 the team and in w3 its points, post incrementing x0 and x4 by one (first load
+ * then increment the pointer), then arrange w1 and w2 to print the team's name as before (w1=letter, w2=number)
+ * convert them in ascii mode by adding 0x37 to w1 and 0x30 to w2, keep in w3 the points and finally print everything. */
 
 ldrb w1,[x0],0x1
 ldrb w3,[x4],0x1
@@ -537,6 +562,7 @@ bl printf
 ldr x5,[sp],16
 ldp x0,x4,[sp],16
 
+/* Decrement w5 and if not zero, branch => cbnz == compare and branch if not zero (compare w5) */
 sub w5,w5,0x1
 cbnz w5,loop
 
@@ -594,8 +620,11 @@ ret
 semifinals:
 str x30,[sp,-16]!
 
-/* Print the semifinal message and ask the user for the first team's 
- * number of goals */
+/* Print the semifinal message and ask the user for the first team's
+ * number of goals. The string has been loaded in r0 in the main, while r1 and r2
+ * store the teams that will play the match. At first, print and ask for the first team's
+ * number of goals. */
+ 
 stp x0,x1,[sp,-16]!
 stp x2,x3,[sp,-16]!
 
@@ -636,7 +665,8 @@ ldp x0,x1,[sp],16
 ldr x1,[sp],16
 
 /* In order to determine who wins, check the number of goals per team (NO TIE
- * IS ALLOWED), then store the winner in memory */
+ * IS ALLOWED), then store the winner in memory. The memory address is inside
+ * x3. */
 ldr x4,=res1
 ldrb w4,[x4]
 ldr x5,=res2
@@ -655,7 +685,8 @@ end:
 ldr x30,[sp],16
 ret
 
-/* Play the final */
+/* Play the final. The function is quite similar to the semifinals one, the only difference is that here we
+ * don't have to save anything into memory, on the contrary the only thing to do is to print the winner. */
 final:
 str x30,[sp,-16]!
 
@@ -723,9 +754,16 @@ bl printf
 
 ldr x30,[sp],16
 ret
+
+/* Here is where the main begins, the assembler will start the execution from here. */
+
 	.globl main
 
 main:
+
+/* The first thing to do is to store the link register in order to come back once the program has termined. Then, we
+ * can move on to the matches regarding the first group, following with the second and finally the third group.
+ * Next, it's necessary to find the fourth classified and then we can play the semifinals and the final. */
 
 	str x30,[sp,-16]!
 	
@@ -734,8 +772,9 @@ main:
 	ldr x0,=msg1
 	bl printf
 
-	/* r0 will be the pointer to the group base address, 
-	 * r4 the one to the points array */
+	/* x0 will be the pointer to the group base address, 
+	 * x4 the one to the points array. This is going to be
+	 * valid even for group B and C. */
 	ldr x0,=group1
 	ldr x4,=point1
 
@@ -759,7 +798,11 @@ main:
 
 	bl insert_results
 
-	/* Check who's the fourth */
+	/* Check who's the fourth. Before calling the procedure, load each second 
+	 * classified team and its points in this way: w0 stores A's second classified
+	 * w4 its points, w1 stores B's second classified and w5 its points and w2
+	 * stores C's second classified and w6 its points. */
+	 
 	ldr x0,=point1
 	ldr x1,=point2
 	ldr x2,=point3
@@ -776,7 +819,8 @@ main:
 	
 	bl find_fourth
 
-	/* Play semifinals */
+	/* Play semifinals, after loading in w1 and w2 the A's and B's first classified and
+	 * in x3 the memory location in which the winner will be stored */
 	ldr x0,=semi1msg
 	ldr x3,=semi1
 	ldr x1,=group1
@@ -785,6 +829,9 @@ main:
 	ldrb w2,[x2]
 
 	bl semifinals
+
+	/* As before, play the semifinals, this time loading the C's group first classified in w1
+	 * and the fourth classified in w2 */
 
 	ldr x0,=semi2msg
 	ldr x3,=semi2
@@ -795,7 +842,8 @@ main:
 
 	bl semifinals
 
-	/* Play final */
+	/* Finally, load the two finalists in w1 and w2 and play the final */
+	
 	ldr x0,=finmsg
 	ldr x1,=semi1
 	ldrb w1,[x1]
@@ -803,6 +851,8 @@ main:
 	ldrb w2,[x2]
 
 	bl final
+
+	/* Pop the link register from the stack and end this program */
 
 	ldr x30,[sp],16
 	ret
