@@ -155,14 +155,22 @@ stmfd sp!,{r0}
 /* First vs second  */
 stmfd sp!,{r0-r3}
 
-/* ldr r0,=firstrnd loads the address of the memory variable named firstrnd   */
+/* ldr r0,=firstrnd loads the address of the memory variable named firstrnd, bl printf calls the printf function and
+ * at the end it returns to the next instruction after the one that called the function. 
+ * ldmfd loads multiple data from the memory, in this case it pops multiple registers from the stack, updating 
+ * automatically the stack pointer. In this case push and pop are needed in order to preserve the content of 
+ * r0-r3 registers that are modified by printf. */
 
 ldr r0,=firstrnd
 bl printf
 ldmfd sp!,{r0-r3}
 
 /* Print first team */
+/* ldrb r1,[r0] loads a byte from memory at the address provided by the content of r0 */
+
 ldrb r1,[r0]
+
+/* print_match is a procedure implemented inside this program */
 
 bl print_match
 
@@ -172,6 +180,7 @@ ldr r1,=res1
 bl scanf
 
 /* Print second team */
+/* load in r0 the content at the TOS, without removing it, load in r1 a byte that's stored at r0 address + 1 byte offset */
 ldr r0,[sp]
 ldrb r1,[r0,#0x1]
 
@@ -183,20 +192,31 @@ ldr r1,=res2
 bl scanf 
 
 /* Assign points (load number of goals in r0 and r1 and the teams' ranking
- * entries in r2 and r3*/
+ * entries in r2 and r3), in particular by loading the address of result, and then loading in the same
+ * register the content of said variable. */
+ 
 ldr r0,=res1
 ldrb r0,[r0]
 ldr r1,=res2
 ldrb r1,[r1]
 
+/* eor performs the xor, in particular xoring r5 with r5 itself resets that register. mov r6,#0x1 copies
+ * 1 inside r6. ldrb r2,[r4,r5] loads a byte from memory at the address provided by the content of r4, the
+ * base address, and r5, the offset.*/
+ 
 eor r5,r5
 mov r6,#0x1
 ldrb r2,[r4,r5]
 ldrb r3,[r4,r6]
 
+/* assign_points is a procedure implemented in this file */
 bl assign_points
 
 /* Second vs third  */
+/* The following code performs exactly the same task of the previous one, that is pick two teams of the same group 
+ * and ask the user for the final result. It has the same implementation, so the things that were told before apply
+ * here as well */
+ 
 stmfd sp!,{r0-r3}
 ldr r0,=scndrnd
 bl printf
@@ -278,10 +298,13 @@ ldrb r3,[r4,r6]
 
 bl assign_points
 
-/* Print the group's rank */
+/* Print the group's rank, print_rank is a procedure defined in this file */
 ldmfd sp!,{r0}
 bl print_rank 
 
+/* At the end of the procedure, we pop out of the stack the register we pushed in the first place,
+ * and then we return with the instruction "bx lr" */
+ 
 ldmfd sp!,{r3-r6,lr}
 bx lr
 
@@ -289,13 +312,22 @@ bx lr
 print_match:
 stmfd sp!,{r4,lr}
 
-/* r1 stores the team's name, in order to print it: r1=word, r2=number  */
+/* r1 stores the team's name, in order to print it: r1=word, r2=number. To do that, first we store in r2 the lower
+ * r1 four bits by doing an and (and r2,r1,#0xF == r2 <- r1 & 00001111), then we've to modify r1's content in order
+ * to make it have only the letter, and we do that by removing the lower four bits with the and r1,r1,#0xF0, resetting
+ * r4 (only temporarily, since the original r4 content was pushed in the stack and it will be popped out of the stack
+ * at the end) and doing the addition add r1,r4,r1,lsr #0x4 : since in 32-bit state there's no way to perform a shift
+ * operation by itself, the workaround consists in adding 0 to r1 shifted to the right by four positions (in this case)
+ * and storing the result in r1. */
+ 
 and r2,r1,#0xF
 and r1,r1,#0xF0
 eor r4,r4
 add r1,r4,r1,lsr #0x4
 
-/* Convert in ascii */
+/* Convert in ascii: since the output format is a character, we want to convert these values in their relative ascii version
+ * In particular: we add 0x37 to r1 to convert it to a letter (A, B or C), and 0x30 to r2 to convert it in a number (1, 2 or 3)*/
+ 
 add r1,r1,#0x37
 add r2,r2,#0x30
 ldr r0,=str
@@ -304,15 +336,23 @@ bl printf
 ldmfd sp!,{r4,lr}
 bx lr
 
-/* Function to assign points */
+/* Function to assign points: r2 will store first team's points, r3 instead second team's points */
 assign_points:
 stmfd sp!,{r0-r3,lr}
 
-/* Check which group has scored the highest number of goals */
+/* Check which group has scored the highest number of goals.
+ * cmp subtracts from the first register the second one, it doesn't store the result anywhere but it updates
+ * the processor's flags. */
+ 
 cmp r0,r1
 
 /* If the first team has scored less goals than the second, jump to lessgoals
- *if instead they've scored the same amount of goals, go to equgoals */
+ * if instead they've scored the same amount of goals, go to equgoals.
+ * To do that, we append to the instruction b label (unconditional jump)
+ * a suffix, mi or eq in this case, that means that if, checking the processor's flags
+ * we find that r0 is less than r1, we've to jump to less goals, instead if the two
+ * are equal, jump to equgoals */
+ 
 bmi lessgoals
 beq equgoals
 
@@ -326,7 +366,7 @@ lessgoals:
 add r3,r3,#0x3
 b moveon
 
-/* I we're here, it means the game ended with a tie, but we've to see if
+/* If we're here, it means the game ended with a tie, but we've to see if
  * at least one goal has been scored, if not go to nogoals */
 equgoals:
 
@@ -345,6 +385,7 @@ add r3,r3,#0x1
 /* Save in memory the points  */
 moveon:
 
+/* Store points of both teams in memory, as bytes. */
 strb r2,[r4,r5]
 strb r3,[r4,r6]
 
