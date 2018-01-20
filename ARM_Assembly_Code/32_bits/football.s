@@ -528,7 +528,9 @@ ldrb r6,[r6,#0x1]
 mov r3,r4
 
 /* Compare second classified in group A's points with second classified in
- * group C's points, if minor, save the latter in r3  */ 
+ * group C's points, if minor, save the latter in r3. Notice that movmi and later movge
+ * are just the mov instruction executed if r0 is less than r1 (if ge than if it's greater
+ * or equal). */ 
 cmp r0,r1
 movmi r3,r5
 
