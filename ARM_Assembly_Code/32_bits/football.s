@@ -671,7 +671,7 @@ ldmfd sp!,{r0-r3}
 ldmfd sp!,{r4,r5,lr}
 bx lr
 
-/* Here is where the main begins, the assembler will start the execution from here. */
+/* Here is where the main begins, the execution starts from here. */
 
 	.global main
 
