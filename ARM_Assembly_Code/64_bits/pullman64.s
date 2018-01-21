@@ -275,7 +275,7 @@ print_time:
 stp x1,x6,[sp,-16]!
 str x30,[sp,-16]!
 
-/* This procedure is called whenever we've to print the time. To make it as general as possible, r1 will store,
+/* This procedure is called whenever we've to print the time. To make it as general as possible, w1 will store,
  * throughout the whole program, the time. In order to print it, the rule followed was: w1 = hours, w2 = minutes .
  * In this way, no matter where the procedure is called, it will do its job with no problem. w1 has been pushed 
  * and popped in order not to overwrite it and loose the time. 
