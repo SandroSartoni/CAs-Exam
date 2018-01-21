@@ -755,7 +755,7 @@ bl printf
 ldr x30,[sp],16
 ret
 
-/* Here is where the main begins, the assembler will start the execution from here. */
+/* Here is where the main begins, the execution starts from here. */
 
 	.globl main
 
