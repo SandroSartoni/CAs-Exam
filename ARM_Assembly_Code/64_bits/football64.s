@@ -165,7 +165,7 @@ insert_results:
  * on a 16 bytes boundary; the meaning of this instruction is: make space for 16 bytes and then store in this
  * space the two registers. It's important to notice that, even when we store one register, we stil have to
  * decrement the sp by 16; the only difference is that when storing one register we can use the store (str) instruction. 
- * The stack grows in a descending way (the stack grows and the address decrements). */
+ * The stack grows in a descending way (the stack grows and the address decrements). x30 is the link register. */
 
 stp x3,x5,[sp,-16]!
 stp x6,x30,[sp,-16]!
