@@ -2,7 +2,7 @@
 
 Note: there're some differencies between the 64-bits ARM assembly and the 32-bits one. The most immediate regards
 the registers: while in 32-bits mode we've 16 registers, r0-r15, each one on 32 bits, here we've 31 registers
-x0-x30 plus, in some instructions, we can refer to one more register called SP (stack pointer), each one on 64-bits.
+x0-x30, plus, in some instructions, we can refer to one more register called SP (stack pointer), each one on 64-bits.
 It's possible, eventually, to refer only to the lowest 32-bits, by changing the 'x' with 'w', i.e. w0 instead of x0.
 Other differencies will be discussed in the code.
 
@@ -137,8 +137,20 @@ These commands will work only if executed when inside the same directory of the 
 
 /* .data is a directive that allows us to define all the memory variables required in our program */
 	.data
+ 
+/* .balign <power_of_two> aligns the address of whatever is below to <power_of_two> bytes. If the address is
+ * already a multiple of <power_of_two> bytes, it does nothing. This instruction is required by the processor in order to work
+ * correctly, failures to do so may generate errors */
 
-.balign 8
+.balign 4
+
+/* To create memory variables, the syntax is: <variable_name>: .<type_of_variable> value1[,value2,...]. In the first line
+ * for example, .asciz "<content_of_the_string>" is creating a memory variable that is a
+ * string, in ascii format followed by a 0 byte (the 'z' in asciz), initialized with the content inside the quotation
+ * marks and named absol (a-b solution). Below, we can find some arrays (A_SCHED for example), made of halfwords, on 16-bits.
+ * To declare arrays, simply state the name and the type and list all the elements separated by a ','. Variables such as
+ * N_A, N_B and so on have 1 byte size. */
+
 absol: .asciz "Solution regarding A and B\n"
 cdsol: .asciz "Solution regarding C and D\n"
 hrmsg: .asciz "Insert departure hour: "
@@ -180,15 +192,35 @@ TMP_VAR: .byte 0x00
 .balign 4
 H_LEAVE: .hword 0x0000
 
+/* .text is a directive that tells the assembler where the code starts */
+
 	.text
 
+/* .globl printf/scanf are used in order to use printf and scanf in the assembly code. printf takes as arguments x0, that
+ * should store the content that has to be printed, and eventually x1-x7 as other arguments if needed, i.e. to print
+ * "Hello World!" is sufficient to load on x0 the address of the string and nothing more, while to execute printf("The result
+ * of the sum is: %d",var); x0 has to store the address of the string, x1 has to store the address of var.
+ * scanf("%d",&var); instead needs to have on x0 the format of the data that we're going to insert (scanpattern), while x1 has 
+ * to have the address of the memory variable in which we want to store the data. */
 
-	.global printf
-	.global scanf
+	.globl printf
+	.globl scanf
 
 /* Ask the user the departure time and store it in memory  */
 take_h_leave:
+
+/* The instruction below, str x30,[sp,-16]! is used to push in the stack the register x30, its meaning is: update
+ * the stack pointer by decrementing it by 16 (stack is descending, it grows and the address decrements) and then
+ * store x30 in it (x30 is the link register). The sp has to be aligned on 16 bytes, this is why we're decrementing
+ * it by 16 even if we're saving a 8 bytes variable. In general it may be necessary to push (and pop, at the end) 
+ * multiple registers in (from) the stack: while in the 32-bits language there's the possibility to store and load
+ * more than two registers at a time, here unfortunately we can only store and load two registers. */
+
 str x30,[sp,-16]!
+
+/* ldr x0,=hrmsg loads into x0 the address of the string named hrmsg. It's used to print it using printf, that is
+ * the instruction that comes right after. bl stands for branch with link, that means that at the end of the 
+ * procedure the caller flow of instructions is resumed from the next instruction. */
 
 ldr x0,=hrmsg
 bl printf
@@ -197,6 +229,16 @@ ldr x0,=scan_pattern
 ldr x1,=H_LEAVE
 bl scanf
 
+/* ldrh and strh are load and store instructions that load specifically a value on 16-bits (the h at the end stands
+ * for half-word, that is on 16-bits. In this way we don't have to further "clean" this value: in fact, if we used
+ * ldr, we would have needed to remove whatever comes after the lower 16-bits by performing an "and" in order to mask
+ * the useful data (and x1,x1,0xFFFF => x1 <- x1 & 0xFFFF). These functions require that the register we're
+ * going to load into from the memory or which value is going to be stored in the memory is on 32-bits, that's why
+ * there's w1 for example. The memory address is given by the content of the register inside the square brackets.
+ * lsl w1,w1,0x8 is an instruction that explicitly shifts left (in this case, it would have been right if "lsr") by
+ * 8 positions. In this way, we avoid doing this (supposing w4 is zero): add w1,w4,w1,lsl 0x8 that means "shift 
+ * left by 8 positions w1, add it to 0 (w4) and store it in w1. */
+ 
 ldr x1,=H_LEAVE
 ldrh w1,[x1]
 lsl w1,w1,0x8
@@ -218,18 +260,35 @@ add w1,w1,w0
 ldr x0,=H_LEAVE
 strh w1,[x0]
 
+/* At the end of the procedure, we pop from the stack what we pushed in the first case, that is the link register
+ * with this load instruction that loads from memory and then updates the stack pointer by incrementing it. 
+ * ret is the instruction that terminates the current procedure and returns to the caller. */
+
 ldr x30,[sp],16
 ret
 
 /* Print the time */
 print_time:
+
+/* stp x1,x6,[sp,-16]! is the function that allows us to store two registers in memory, or in this case, in the 
+ * stack. As mentioned before, it's not possible to store or load more than two registers at a time. */
 stp x1,x6,[sp,-16]!
 str x30,[sp,-16]!
 
-/* r1 = hours, r2 = minutes */
+/* This procedure is called whenever we've to print the time. To make it as general as possible, r1 will store,
+ * throughout the whole program, the time. In order to print it, the rule followed was: w1 = hours, w2 = minutes .
+ * In this way, no matter where the procedure is called, it will do its job with no problem. w1 has been pushed 
+ * and popped in order not to overwrite it and loose the time. 
+ * To do that, we save in w2 the lower byte (that stores the minutes) and shift right w1 (in order to have in the
+ * lower byte the hour). */
 and w2,w1,0xFF
 lsr w1,w1,0x8
 
+/* cbnz xa,label checks if xa is 0 and if not it jumps to label. It saves one instruction (in 32-bits state we'd
+ * have needed to write "cmp r6,#0" and then "bne label", where bne means branch if not equal. 
+ * We're comparing x6 because it stores the information about whether we're travelling on the same day of the 
+ * departure (0) or on the next day (1). b label is an unconditional jump to label. */
+ 
 cbnz x6,loadtomorrow
 ldr x0,=time
 b printtime
@@ -242,6 +301,7 @@ printtime:
 
 bl printf
 
+/* ldp is the funcion that performs two loads from the memory. */
 ldr x30,[sp],16
 ldp x1,x6,[sp],16
 ret
@@ -250,28 +310,48 @@ ret
 not_today:
 str x30,[sp,-16]!
 
+/* If this procedure has been called, it means that no available solution was present in the same day, so we add
+ * 1 to x6 to symbolize that we're travelling in the next day and we load in w1 the first available solution in the
+ * table (could be whatever table A/B/C/D_SCHED). */
+ 
 add x6,x6,0x1
 ldrh w1,[x0]
 
 ldr x30,[sp],16
 ret
 
-/* Print the duration of the full trip  */
+/* Print the duration of the full trip. w1 stores the arrival time.  */
 print_duration:
 str x30,[sp,-16]!
 
+/* First thing to do is to load the departure time in w0, and copy 0xC4 in w4 since it may be needed later. */ 
 ldr x0,=H_LEAVE
 ldrh w0,[x0]
 mov w4,0xC4
 
+/* What we want to do here is to compare the minutes of the departure time and those of the arrival time, so
+ * we isolate them by "anding" with 0xFF and saving them in w2 and w3. */
+ 
 and w2,w0,0xFF
 and w3,w1,0xFF
 
+/* If the arrival time minutes are greater or equal than those of the departure time than nothing happens. In fact,
+ * the duration is computed as the subtraction of the arrival time and the departure time (plus some adjustments):
+ * if arrival time's minutes are greater than those of the departure time, there'll be no carry in the subtraction
+ * that can be performed as it is (after checking if we've arrived on the same day); otherwise we add 60 minutes and
+ * remove 1 hour (that basically changes nothing but allows not to have carries). This is obtained by subtracting 196
+ * (format of representation: 000hhhhhh00mmmmmm so 1 hour has a weight of 256 and 60 minutes weight as 60, so adding
+ * 60 and subtracting 256 is the same as subtracting 196). */
+ 
 cmp w3,w2
 bge keepon
 sub w1,w1,w4
 
 keepon:
+
+/* Here we check if we've arrived on the same day or in the following day: cbz xa,label means check if xa is 0 and if
+ * so jump to label. In this case check if x6 is 0 (we've arrived on the same day), if so move on, otherwise add 24
+ * hours to the arrival time (we don't want carries). */
 
 cbz x6,continue
 
@@ -279,9 +359,12 @@ mov w2,0x18
 lsl w2,w2,0x8
 add w1,w1,w2
 
+/* Finally we can subtract from the arrival time the departure one */
+
 continue:
 sub w1,w1,w0
 
+/* Print the duration time */
 and w2,w1,0xFF
 lsr w1,w1,0x8
 
@@ -291,13 +374,19 @@ bl printf
 ldr x30,[sp],16
 ret
 
-/* Main Section  */
+/* Here is where the main begins, the the execution starts from here. */
 
 	.global main
 	.global printf
-/* Remember to mask the bits when loading values from memory */
 
 main:
+
+/* The first thing to do is to store the link register in order to come back once the program has termined. Then, we
+ * can move on to ask the user the departure time. Next, we search in A_SCHED an available hour, print it
+ * and add A_TO_B time. Then we search an available solution, print it, add B_TO_TP time, print the time once again
+ * and print the duration time. The whole process is repeated with C and D. If, in any search, there's no solution
+ * available, make x6=1 and load the first solution in that table. */
+ 
 	str x30, [sp,-16]!
 
 /* Ask the user for H_LEAVE and store it in memory */
@@ -309,12 +398,17 @@ main:
 
 /* Load from memory H_LEAVE */	
 	ldr x2,=H_LEAVE
-	ldr w2,[x2]
+	ldrh w2,[x2]
 
-/* Reset r6 (used to signal if the solution belongs to the next day)  */
+/* Reset r6 (used to signal if the solution belongs to the next day): eor x6,x6,x6 performs the
+ * xor between x6 and x6 itself, storing the result in x6. This is the same as resettin x6
+ * (1 xor 1 = 0 as well as 0 xor 0 = 0). */
+ 
 	eor x6,x6,x6
 
-/* Start searching in A_SCHED the first available hour  */	
+/* Start searching in A_SCHED the first available hour. Load in x0 the base address of the table,
+ * in x4 the maximum number of iterations, reset x5 (used to count how many iterations) and x7
+ * (as offset for the table). */	
 	ldr x0,=A_SCHED
 	ldr x4,=N_A
 	ldrb w4,[x4]
@@ -322,6 +416,10 @@ main:
 	eor x7,x7,x7
 	
 search_a:
+
+/* If the number of iterations exceeds the maximum value, go to not_today_a (and then execute not_today),
+ * otherwise load from A_SCHED a hour, increment x7 and x5 and compare the departure time with the one 
+ * retrieved by the table. As soon as we find a time greater or equal to the one we've set, go to print_a*/
 
 	cmp x4,x5
 	beq not_today_a
@@ -340,7 +438,8 @@ print_a:
 
 /* Every time I call printf, I push and pop X1,X6 because they're the
  * the only ones that do not have to be overwritten: X1 stores the time
- * while X6 tells if it's referred to today or tomorrow*/
+ * while X6 tells if it's referred to today or tomorrow */
+ 
 	stp x1,x6,[sp,-16]!
 
 	ldr x0,=solmsg
@@ -356,13 +455,16 @@ print_a:
 	
 	add w1,w1,w3
 
-/* Check for "time overflow" */
+/* Check for "time overflow", that means check if minutes are greater than 60 and eventually 
+ * subtract 60 from minutes and add 1 hour (+256 to add 1 hour and -60 to subtract 60 minutes
+ * these two operations can be performed in one by adding 196, 0xC4). */
+ 
 	and w3,w1,0xFF
 	cmp w3,0x3C
 	bmi printswpmsg_ab
 	add w1,w1,0xC4
 
-/* Before, we print the arrival time to the swap point  */
+/* Before, we have to print the arrival time to the swap point  */
 printswpmsg_ab:
 	
 	stp x1,x6,[sp,-16]!
@@ -374,7 +476,7 @@ printswpmsg_ab:
 
 	bl  print_time
 
-/* Check now in B_SCHED table */
+/* Check now in B_SCHED table exactly as before */
 	ldr x0,=B_SCHED
 	ldr x4,=N_B
 	ldrb w4,[x4]
@@ -409,18 +511,20 @@ print_b:
 
 	bl print_time
 
-/* Add B_TO_TP time, check for "time overflow" and print it */
+/* Add B_TO_TP time */
 
 	ldr x0,=B_TO_TP
 	ldrb w0,[x0]
 
 	add w1,w1,w0
 
+/* Check for "time overflow" */
 	and w3,w1,0xFF
 	cmp w3,0x3C
 	bmi printarrmsg_ab
 	add w1,w1,0xC4
 
+/* Finally print the arrival time and the duration of the whole trip */
 printarrmsg_ab:
 
 	stp x1,x6,[sp,-16]!
@@ -434,7 +538,8 @@ printarrmsg_ab:
 
 	bl print_duration
 
-/* Solution regarding C and D */
+/* Solution regarding C and D. It has exactly the same algorithm as before, so the observation done previously
+ * are valid here as well. */
 	ldr x0,=cdsol
 	bl printf
 
