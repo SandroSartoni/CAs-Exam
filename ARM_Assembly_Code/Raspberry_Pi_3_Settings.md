@@ -63,4 +63,4 @@ gcc -o filename filename.o
 ```
 provided that we currently are in the folder containing filename.s source code. Notice that 
 `-g` is used in order to be able to debug the executable file i.e. using GDB.
-To install GDB it's sufficient to type `sudo apt-get install gdb`
+To install GDB it's sufficient to type `sudo apt-get install gdb`.
