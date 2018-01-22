@@ -17,7 +17,11 @@ https://etcher.io/ , that should recognize automatically the SD card.
 If working on a Linux environment, an exhaustive documentation can be found at
 https://www.raspberrypi.org/documentation/installation/installing-images/linux.md , provided
 that whenever 2017-11-29-raspbian-stretch.img is found, it has to be changed with the
-actual name of the image file.
+actual name of the image file, as well as wherever /dev/sdX/ is found, it has to be replaced
+with the actual location of the SD card (if there's an SD card slot integrated in the PC, it
+should be /dev/mmcblk0/.
+The first installation may require some time, but then the other ones should be much faster.
+To login, the username is "pi" and the password "raspberrypi".
 At this point, it's necessary to go through some steps to have everything working. 
 The first thing to do is to update the OS, but since there're some issues related to
 the internet connection, it's best to modify the file wpa_supplicant.conf by:
