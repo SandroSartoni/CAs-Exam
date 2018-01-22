@@ -1,3 +1,5 @@
+Raspberry Pi 3 Settings
+=======================================================================================
 In order to execute 64-bits source code, a 64-bits OS is needed.
 The official OS for Raspberry is Raspbian, a 32-bits distribution, based on Debian, made
 specifically for ARM chips. Unfortunately, no official support is still present for 64-bits
