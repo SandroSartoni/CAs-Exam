@@ -284,12 +284,16 @@ str x30,[sp,-16]!
 and w2,w1,0xFF
 lsr w1,w1,0x8
 
-/* cbnz xa,label checks if xa is 0 and if not it jumps to label. It saves one instruction (in 32-bits state we'd
- * have needed to write "cmp r6,#0" and then "bne label", where bne means branch if not equal. 
+/* cmp x6,0x2 checks if x6 is equal to 2, by performing x6-2. It doesn't store the result anywhere, it just updates
+ * the processor's flags.
  * We're comparing x6 because it stores the information about whether we're travelling on the same day of the 
- * departure (0) or on the next day (1). b label is an unconditional jump to label. */
+ * departure or on the next day: in particular, since the "*" has to appear only when printing the arrival time,
+ * if we're travelling on the same day, x6 will be set to 1; before calling this procedure, when printing the arrival
+ * time, the variable is once more incremented. In this way we're telling that we're travelling on the next day and
+ * that we're printing the arrival time. b label is an unconditional jump to label. */
  
-cbnz x6,loadtomorrow
+cmp x6,0x2
+beq loadtomorrow
 ldr x0,=time
 b printtime
 
@@ -534,7 +538,9 @@ printarrmsg_ab:
 
 	ldp x1,x6,[sp],16
 
+	add x6,x6,0x1
 	bl print_time
+	sub x6,x6,0x1
 
 	bl print_duration
 
@@ -663,7 +669,10 @@ printarrmsg_cd:
 
 	ldp x1,x6,[sp],16
 
+	add x6,x6,0x1
 	bl print_time
+	sub x6,x6,0x1
+	
 	bl print_duration
 
 /* End of the program */
