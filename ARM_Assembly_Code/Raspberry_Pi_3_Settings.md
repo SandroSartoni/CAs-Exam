@@ -61,12 +61,14 @@ $ sudo apt-get install g++-arm-linux-gnueabi
 To generate the executable file, it's necessary to type `arm-linux-gnueabi-gcc filename.s -o filename`.
 If, by typing `./filename` there're still problems, type `file ./filename`
 and, if there's written `interpreter /lib/ld-linux.so.3` then it's necessary to write
-`ln -s /lib/ld-linux-armhf.so.3 /lib/ld-linux.so.3`. Everything should work now.
-Regarding 64-bits files, to generate the executable it's necessary to type into the terminal:
+`sudo ln -s /lib/ld-linux-armhf.so.3 /lib/ld-linux.so.3`. Everything should work now.
+Regarding 64-bits files, first it's necessary to install gcc: `sudo apt-get install gcc`, then
+to generate the executable it's necessary to type into the terminal:
 ```
 as -g -o filename.o filname.s
 gcc -o filename filename.o
 ```
 provided that we currently are in the folder containing filename.s source code. Notice that 
 `-g` is used in order to be able to debug the executable file i.e. using GDB.
-To install GDB it's sufficient to type `sudo apt-get install gdb`.
+To install GDB it's sufficient to type `sudo apt-get install gdb`. As before, to run the executable,
+just type `./filename`
