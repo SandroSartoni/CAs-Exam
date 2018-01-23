@@ -278,14 +278,14 @@ and r2,r1,#0xFF
 eor r0,r0
 add r1,r0,r1,lsr #0x8
 
-/* cmp r6,#0 checks if r6 is greater than zero (it performs the subtraction r6-0), it doesn't store the result
+/* cmp r6,#0x2 checks if r6 is equal to 2 (it performs the subtraction r6-2), it doesn't store the result
  * anywhere but it updates the processor's flags. Depending on these flags, the following instructions, that
- * are loads with suffixes for the conditional execution, will be executed or not: in particular if r6 is 0 we'll
- * load in r0 "time" format, if it's not 0 we'll load in r0 "tomorrowtime" format. */
+ * are loads with suffixes for the conditional execution, will be executed or not: in particular if r6 is 2 we'll
+ * load in r0 "tomorrowtime" format, otherwise we'll load in r0 "time" format. */
  
-cmp r6,#0
-ldreq r0,=time
-ldrne r0,=tomorrowtime
+cmp r6,#0x2
+ldrne r0,=time
+ldreq r0,=tomorrowtime
 bl printf
 
 ldmfd sp!,{r1,lr}
@@ -500,7 +500,9 @@ print_b:
 	bl printf
 	ldmfd sp!,{r1}
 
+	add r6,r6,#0x1
 	bl print_time
+	sub r6,r6,#0x1
 
 	bl print_duration
 
@@ -599,23 +601,28 @@ print_d:
 
 	bl print_time
 
-/* Add D_TO_TP time, check for "time overflow" and print it */
+/* Add D_TO_TP time */
 
 	ldr r0,=D_TO_TP
 	ldrb r0,[r0]
 
 	add r1,r1,r0
 
+/* Check for "time overflow" */
 	and r3,r1,#0xFF
 	cmp r3,#0x3C
 	addge r1,r1,#0xC4
 
+/* And finally print the arrival time and the duration of the whole trip */
 	stmfd sp!,{r1}
 	ldr r0,=arrmsg
 	bl printf
 	ldmfd sp!,{r1}
 
+	add r6,r6,#0x1
 	bl print_time
+	sub r6,r6,#0x1
+	
 	bl print_duration
 
 /* End of the program */
