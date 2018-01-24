@@ -84,7 +84,7 @@ REQUIREMENTS ON THE I/O PART TO BE DONE AT HOME
 *********************************************************************************************************************************       
 
 How to get this file running on Raspberry Pi 3:
-After having installed pi64 OS, it's quite easy to get this file running by typing:
+After having installed pi64 OS and gcc (sudo apt-get install gcc), it's quite easy to get this file running by typing:
 
 as -g -o football64.o football64.s
 gcc -o football64 football64.o
