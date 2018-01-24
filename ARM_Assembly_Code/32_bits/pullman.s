@@ -229,7 +229,10 @@ bl scanf
  * The memory address is given by the content of the register inside the square brackets.
  * Since there's no shift instruction in 32_bits assembly, the only way to do this is to use a workaround: we reset
  * r0 and then we perform the addition add r1,r0,r1,lsl #0x8 that means "shift left by 8 positions w1, add it to 0
- * (r0) and store it in r1. */
+ * (r0) and store it in r1. 
+ * What happens here is that, we've printed hrmsg string and we've acquired H_LEAVE hour. What we've to do now is to
+ * load it from memory, shift it left by 8 positions (format of representation: 000hhhhh00mmmmmm) and store it back in
+ * memory. */
 
 ldr r1,=H_LEAVE
 ldrh r1,[r1]
@@ -238,13 +241,17 @@ add r1,r0,r1,lsl #0x8
 ldr r0,=H_LEAVE
 strh r1,[r0]
 
+/* The next thing we're going to do is to do a similar thing with minutes: we're asking the user to insert minutes here */
 ldr r0,=mntmsg
 bl printf
 
+/* Here we acquire the minutes */
 ldr r0,=scan_pattern
 ldr r1,=TMP_VAR
 bl scanf
 
+/* And here we're going to add r1 (that stores the hour) with r0 (that stores the minutes), and store everything in
+ * H_LEAVE. */
 ldr r1,=H_LEAVE
 ldrh r1,[r1]
 ldr r0,=TMP_VAR
@@ -269,9 +276,9 @@ stmfd sp!,{r1,lr}
 
 /* This procedure is called whenever we've to print the time. To make it as general as possible, r1 will store,
  * throughout the whole program, the time. In order to print it, the rule followed was: r1 = hours, r2 = minutes .
- * In this way, no matter where the procedure is called, it will do its job with no problem. w1 has been pushed 
+ * In this way, no matter where the procedure is called, it will do its job with no problem. r1 has been pushed 
  * and popped in order not to overwrite it and loose the time. 
- * To do that, we save in r2 the lower byte (that stores the minutes) and shift right w1 (in order to have in the
+ * To do that, we save in r2 the lower byte (that stores the minutes) and shift right r1 (in order to have in the
  * lower byte the hour). */
  
 and r2,r1,#0xFF
@@ -338,6 +345,8 @@ submi r1,r1,r4
 cmp r6,#0
 beq continue
 
+/* 0x1800 is the same as 24 hours in the format of representation of time used in the program, so copy 0x18 in r2 and
+ * shift it left by 8 positions, then add it to r1 that stores the arrival time. */
 mov r2,#0x18
 eor r3,r3
 add r2,r3,r2,lsl #0x8
@@ -358,7 +367,7 @@ bl printf
 ldmfd sp!,{lr}
 bx lr
 
-/* Here is where the main begins, the the execution starts from here. */
+/* Here is where the main begins, the execution starts from here. */
 
 	.global main
 
@@ -385,7 +394,7 @@ main:
 	ldrh r2,[r2]
 
 /* Reset r6 (used to signal if the solution belongs to the next day): eor x6,x6,x6 performs the
- * xor between x6 and x6 itself, storing the result in x6. This is the same as resettin x6
+ * xor between x6 and x6 itself, storing the result in x6. This is the same as resetting x6
  * (1 xor 1 = 0 as well as 0 xor 0 = 0). */
  
 	eor r6,r6
@@ -406,14 +415,14 @@ search_a:
  * otherwise load from A_SCHED a hour, increment x7 and x5 and compare the departure time with the one 
  * retrieved by the table. As soon as we find a time greater or equal to the one we've set, go to print_a */
 
-	cmp r4,r5
-	beq not_today_a
-	ldrh r1,[r0,r7]
-	add r7,r7,#0x2
-	add r5,r5,#0x1
-	cmp r1,r2
-	bmi search_a
-	b print_a
+	cmp r4,r5	/* Check if number of iterations is equal to the maximum value */
+	beq not_today_a /* If so, go to not_today_a */
+	ldrh r1,[r0,r7] /* Load a time from A_SCHED */
+	add r7,r7,#0x2  /* Increment the offset for the next element */
+	add r5,r5,#0x1  /* Increment loop counter */
+	cmp r1,r2       /* Compare H_LEAVE (in r2) with the time taken from the table (in r1) */
+	bmi search_a    /* If H_LEAVE is greater than r1, keep searching */
+	b print_a	/* Otherwise go to print_a */
 	
 not_today_a:
 
@@ -436,13 +445,14 @@ print_a:
 
 /* Check for "time overflow", that means check if minutes are greater than 60 and eventually 
  * subtract 60 from minutes and add 1 hour (+256 to add 1 hour and -60 to subtract 60 minutes
- * these two operations can be performed in one by adding 196, 0xC4). */
+ * these two operations can be performed in one by adding 196, 0xC4). To do so, isolate minutes
+ * in r3 with the "and", compare it with 60 and eventually add 196. */
  
 	and r3,r1,#0xFF
 	cmp r3,#0x3C
 	addge r1,r1,#0xC4
 
-/* Before, we print the arrival time to the swap point  */
+/* Before searching in B_SCHED, we print the arrival time to the swap point  */
 	stmfd sp!,{r1}
 	ldr r0,=swpmsg
 	bl printf
@@ -489,6 +499,7 @@ print_b:
 	ldrb r0,[r0]
 
 	add r1,r1,r0
+	
 /* Check for "time overflow" */
 	and r3,r1,#0xFF
 	cmp r3,#0x3C
@@ -500,6 +511,9 @@ print_b:
 	bl printf
 	ldmfd sp!,{r1}
 
+/* Here we add and subtract 1 because we're printing the arrival time: if we're travelling on the next day, then
+ * the arrival time has to have a "*" next to it. In order to do so, this format is chosen only if r6 is equal to 2:
+ * this can be possible only if not_today procedure has been called and we're printing the arrival time */
 	add r6,r6,#0x1
 	bl print_time
 	sub r6,r6,#0x1
