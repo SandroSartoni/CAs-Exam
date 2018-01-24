@@ -237,7 +237,10 @@ bl scanf
  * there's w1 for example. The memory address is given by the content of the register inside the square brackets.
  * lsl w1,w1,0x8 is an instruction that explicitly shifts left (in this case, it would have been right if "lsr") by
  * 8 positions. In this way, we avoid doing this (supposing w4 is zero): add w1,w4,w1,lsl 0x8 that means "shift 
- * left by 8 positions w1, add it to 0 (w4) and store it in w1. */
+ * left by 8 positions w1, add it to 0 (w4) and store it in w1. 
+ * What happens here is that, we've printed hrmsg string and we've acquired H_LEAVE hour. What we've to do now is to
+ * load it from memory, shift it left by 8 positions (format of representation: 000hhhhh00mmmmmm) and store it back in
+ * memory. */
  
 ldr x1,=H_LEAVE
 ldrh w1,[x1]
@@ -245,13 +248,17 @@ lsl w1,w1,0x8
 ldr x0,=H_LEAVE
 strh w1,[x0]
 
+/* The next thing we're going to do is to do a similar thing with minutes: we're asking the user to insert minutes here */
 ldr x0,=mntmsg
 bl printf
 
+/* Here we acquire the minutes */
 ldr x0,=scan_pattern
 ldr x1,=TMP_VAR
 bl scanf
 
+/* And here we're going to add w1 (that stores the hour) with w0 (that stores the minutes), and store everything in
+ * H_LEAVE. */
 ldr x1,=H_LEAVE
 ldrh w1,[x1]
 ldr x0,=TMP_VAR
@@ -359,6 +366,8 @@ keepon:
 
 cbz x6,continue
 
+/* 0x1800 is the same as 24 hours in the format of representation of time used in the program, so copy 0x18 in w2 and
+ * shift it left by 8 positions, then add it to w1 that stores the arrival time. */
 mov w2,0x18
 lsl w2,w2,0x8
 add w1,w1,w2
@@ -425,14 +434,14 @@ search_a:
  * otherwise load from A_SCHED a hour, increment x7 and x5 and compare the departure time with the one 
  * retrieved by the table. As soon as we find a time greater or equal to the one we've set, go to print_a*/
 
-	cmp x4,x5
-	beq not_today_a
-	ldrh w1,[x0,x7]
-	add x7,x7,0x2
-	add x5,x5,0x1
-	cmp w1,w2
-	bmi search_a
-	b print_a
+	cmp x4,x5	/* Check if number of iterations is equal to the maximum value */
+	beq not_today_a /* If so, go to not_today_a */
+	ldrh w1,[x0,x7] /* Load a time from A_SCHED */
+	add x7,x7,0x2	/* Increment the offset for the next element */
+	add x5,x5,0x1	/* Increment loop counter */
+	cmp w1,w2	/* Compare H_LEAVE (in w2) with the time taken from the table (in w1) */
+	bmi search_a	/* If H_LEAVE is greater than w1, keep searching */
+	b print_a	/* Otherwise go to print_a */
 	
 not_today_a:
 
@@ -461,14 +470,15 @@ print_a:
 
 /* Check for "time overflow", that means check if minutes are greater than 60 and eventually 
  * subtract 60 from minutes and add 1 hour (+256 to add 1 hour and -60 to subtract 60 minutes
- * these two operations can be performed in one by adding 196, 0xC4). */
+ * these two operations can be performed in one by adding 196, 0xC4). To do so, isolate minutes
+ * in w3 with the "and", compare it with 60 and eventually add 196. */
  
 	and w3,w1,0xFF
 	cmp w3,0x3C
 	bmi printswpmsg_ab
 	add w1,w1,0xC4
 
-/* Before, we have to print the arrival time to the swap point  */
+/* Before searching in B_SCHED, we have to print the arrival time to the swap point  */
 printswpmsg_ab:
 	
 	stp x1,x6,[sp,-16]!
@@ -538,6 +548,9 @@ printarrmsg_ab:
 
 	ldp x1,x6,[sp],16
 
+/* Here we add and subtract 1 because we're printing the arrival time: if we're travelling on the next day, then
+ * the arrival time has to have a "*" next to it. In order to do so, this format is chosen only if x6 is equal to 2:
+ * this can be possible only if not_today procedure has been called and we're printing the arrival time */
 	add x6,x6,0x1
 	bl print_time
 	sub x6,x6,0x1
@@ -648,18 +661,20 @@ print_d:
 
 	bl print_time
 
-/* Add D_TO_TP time, check for "time overflow" and print it */
+/* Add D_TO_TP time */
 
 	ldr x0,=D_TO_TP
 	ldrb w0,[x0]
 
 	add w1,w1,w0
 
+/* Check for "time" overflow */
 	and w3,w1,0xFF
 	cmp w3,0x3C
 	bmi printarrmsg_cd
 	add w1,w1,0xC4
 
+/* And finally, print the arrival time and the duration */
 printarrmsg_cd:
 
 	stp x1,x6,[sp,-16]!
