@@ -76,8 +76,18 @@ REQUIREMENTS ON THE I/O PART TO BE DONE AT HOME
 *********************************************************************************************************************************       
 
 How to get this file running on Raspberry Pi 3:
-
-
+After having installed pi64 OS, it's necessary to enable multiarch, install all the libraries and the compiler:
+sudo dpkg --add-architecture armhf
+sudo apt-get update
+sudo apt-get install libc6:armhf
+sudo apt-get install libc6-armel-cross libc6-dev-armel-cross
+sudo apt-get install binutils-arm-linux-gnueabi
+sudo apt-get install libncurses5-dev
+sudo apt-get install gcc-arm-linux-gnueabi
+sudo apt-get install g++-arm-linux-gnueabi
+To generate the executable file, it's necessary to type arm-linux-gnueabi-gcc filename.s -o filename.
+If, by typing ./filename there're still problems, type file ./filename and, if there's written interpreter /lib/ld-linux.so.3 then
+it's necessary to write sudo ln -s /lib/ld-linux-armhf.so.3 /lib/ld-linux.so.3. 
 */
 
 /* .data is a directive that allows us to define all the memory variables required in our program */
