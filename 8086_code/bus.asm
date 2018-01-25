@@ -90,24 +90,24 @@
 ;  Install DOSBox and move the directory named "8086" in C: folder. Copy in 8086 folder this executable
 ;  Once in DOSBox, type first " mount c: c:\8086", then "c: ", next "ml filename.asm" and finally "filename.exe"
 
-N_A equ 12     ; N1
-N_B equ 12     ; N2
-N_C equ 12     ; N3
-N_D equ 12     ; N4
+N_A equ 12     ; Define a constant named N_A equal to 12 (size of A_SCHED)
+N_B equ 12     ; Same as before for B_SCHED
+N_C equ 12     ; Same as before for C_SCHED
+N_D equ 12     ; Same as before for D_SCHED
     
 .model small
 .stack  
 .data
-  A_SCHED dw 080Ah,0900h,092Dh,0A1Eh,0B1Eh,0C1Eh,0D0Fh,0E00h,0F00h,1000h,1100h,1200h
-  B_SCHED dw 070Ah,080Fh,0905h,0A28h,0B00h,0E00h,0E1Eh,0F00h,0F1Eh,100Fh,102Dh,110Fh
-  C_SCHED dw 081Eh,0928h,0A32h,0C00h,0D0Ah,0E14h,0F1Eh,1028h,1132h,1300h,140Ah,1514h
+  A_SCHED dw 080Ah,0900h,092Dh,0A1Eh,0B1Eh,0C1Eh,0D0Fh,0E00h,0F00h,1000h,1100h,1200h ; Each of these is an array of words (16-bits)
+  B_SCHED dw 070Ah,080Fh,0905h,0A28h,0B00h,0E00h,0E1Eh,0F00h,0F1Eh,100Fh,102Dh,110Fh ; and each element is a time
+  C_SCHED dw 081Eh,0928h,0A32h,0C00h,0D0Ah,0E14h,0F1Eh,1028h,1132h,1300h,140Ah,1514h ; The h at the end stands for hexadecimal
   D_SCHED dw 0700h,0828h,0928h,0A28h,0B28h,0C1Eh,0D1Eh,0F00h,101Eh,121Eh,141Eh,1500h
   
   a_to_b dw 16
   b_to_tp dw 29
   c_to_d dw 4
   d_to_tp dw 45 
-  sms db "Insert departure time in form hh:mm ."  
+  sms db "Insert departure time in form hh:mm ."  ; Strings used to inform the user
   sms1 db "First available bus is at ."   
   sms2 db "With street   to   and   to    the duration time is  ."  
   sms3 db "I will arrive at swap point at ."
@@ -115,8 +115,8 @@ N_D equ 12     ; N4
   sms6 db "I will arrive at the office at  ."
 
   tmp dw 0 
-  next_day_flag db 0   ; used like my flag
-  tomorrow db 0
+  next_day_flag db 0   ; These variables are
+  tomorrow db 0        ; used as "flags"
   
 
 .code
@@ -131,24 +131,24 @@ N_D equ 12     ; N4
   call new_line     ; Print a new line
    
   mov tmp,N_B       ; Copy N_B in tmp
-  push tmp          ; 1st push, save tab_b size
+  push tmp          ; 1st push, save B_SCHED size
   
   push b_to_tp      ; 2nd push, save b_to_tp time
   lea si,B_SCHED
-  push si           ; 3rd push, save tab_b starting address 
+  push si           ; 3rd push, save B_SCHED starting address 
   
   mov tmp,N_A
-  push tmp          ; 4th push, save tab_a size
+  push tmp          ; 4th push, save A_SCHED size
   
   push a_to_b       ; 5th push, saving a_to_b time
   lea di,A_SCHED
   push di           ; 6th push,  save tab_a base address
   push bx           ; 7th push,  save H_LEAVE
   
-  call journey_computation   ; Procedure to...
+  call journey_computation   ; Procedure to evaluate the whole trip
   
-  pop bx                  ;riprendo il tempo di partenza in cx
-  pop cx                  ;risult
+  pop bx                 
+  pop cx                  ; Load the final result here in cx
   pop ax
   pop ax
   pop ax
@@ -167,9 +167,8 @@ N_D equ 12     ; N4
   call new_line
   pop cx  
   
-;****************************
-  ;push N4  it is not possible it like immediate value
-  mov tmp,N_D              ; similar like precedent call of calcolo percorso
+;**************************** Here we repeat what we've done before for C and D, the exact same approach was used
+  mov tmp,N_D            
   push tmp 
   
   push d_to_tp
@@ -181,7 +180,7 @@ N_D equ 12     ; N4
   push c_to_d
   lea di,C_SCHED 
   push di
-  push bx                 ;departeare time
+  push bx             
   
   call journey_computation
   
@@ -192,7 +191,7 @@ N_D equ 12     ; N4
   pop ax
   pop ax
   pop ax
- ;***************** just for print risult  
+ ;***************** Print the duration 
   push cx   
   mov sms2[12],'C'
   mov sms2[17],'D'
