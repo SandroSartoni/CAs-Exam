@@ -100,8 +100,8 @@ N equ 3                              ; Define a constant named N and equal to 3
    g db "Group   ."                  ; String to tell the user which group is playing
    cg db "Final ranking of group   ."   ; String to tell the user the ranking
    
-.code
-.startup
+.code       ; Code section starts here
+.startup    ; .startup is used to tell that the execution has to start from here
           
           
           push ax            ; Push in the stack all the registers
