@@ -1,11 +1,13 @@
-Raspberry Pi 3 Settings
+ Raspberry Pi 3 Settings
 =======================================================================================
 In order to execute 64-bits source code, a 64-bits OS is needed.
 The official OS for Raspberry is Raspbian, a 32-bits distribution, based on Debian, made
 specifically for ARM chips. Unfortunately, no official support is still present for 64-bits
 OS, even though there're some various releases online. The SD card used with
 Raspberry is a Class 10, 32 GB Kingston card, that showed to work flawlessly
-with Raspbian. Various 64-bits OSs were tried, such as Arch ARM or openSUSE, and
+with Raspbian. Here: https://elinux.org/RPi_SD_cards it's possible to find a list of all the
+"good" and "bad" SD Cards for Raspberry.
+Various 64-bits OSs were tried, such as Arch ARM or openSUSE, and
 all of them showed some random errors, not due to other possible causes, such
 as the PSU for example. The only one that worked without any particular problem
 is pi64, that can be obtained at this link: https://github.com/bamarni/pi64 .
