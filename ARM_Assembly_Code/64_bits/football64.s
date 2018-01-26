@@ -53,16 +53,16 @@ tie, in favor of B2.
 Tasks to be implemented and corresponding point (only fully completed items will be considered to award points)
 •	Item 1 (MANDATORY): write a running program fully implementing the first round ONLY and computing the standings after the
 			        first round. In case of two teams with the same number of points inside a group, any ranking of the two
-			        is acceptable. POINTS  22
+			        is acceptable. POINTS -> 22
 •	Item 2: in addition to Item 1, write a running program implementing the TIE BREAKER RULE #2 inside each group to determine
-		    each group standings; POINTS  +3
+		    each group standings; POINTS -> +3
 •	Item 3: in addition to Item 2 (and 1), write a running program identifying the best second classified to be admitted to the
 		    second round, according to the following criteria: largest number of points, and, in case of a tie between two
-		    teams, TIE BREAKER RULE #1. POINTS  +4
+		    teams, TIE BREAKER RULE #1. POINTS -> +4
 •	Item 4: in addition to Item 3 (and 2), write a running program implementing the second and third (i.e. final) rounds, and
-		    identifying the winning team of the tournament, POINTS  +4
+		    identifying the winning team of the tournament, POINTS -> +4
 •	Bonus Item: in addition to Item 1, write a running program identifying ALL the teams (which could also be more than one) which
-		        have score the largest number of goals at the end of first round. POINTS  +4 (identifying only one of the many
+		        have score the largest number of goals at the end of first round. POINTS -> +4 (identifying only one of the many
 		        awards at most 2 extra points).
 Please consider that a maximum of 33 points can be accounted here; larger values will be “cut off” to 33.
 
