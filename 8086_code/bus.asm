@@ -19,19 +19,19 @@
 ;
 ;Only fully completed items will be considered; given in input H_LEAVE, please solve only one among 1, 2, 3 and 4.
 ;
-;Item 1: POINTS  21. Refer to the first choice only (take bus A, step off and then take bus B) and, ASSUMING that there exists a valid solution in the same day (i.e. departure and arrival occurring on the same day), compute & print:
+;Item 1: POINTS -> 21. Refer to the first choice only (take bus A, step off and then take bus B) and, ASSUMING that there exists a valid solution in the same day (i.e. departure and arrival occurring on the same day), compute & print:
 ;1.	Arrival time to the swap-point;
 ;2.	Departure time from the swap-point; 
 ;3.	Arrival time to the office.
 ;
-;Item 2: POINTS  25. Refer to the first choice only, with the CONSTRAINT that the travel should occur in the same day (i.e. departure and arrival taking place on the same day), compute & print:
+;Item 2: POINTS -> 25. Refer to the first choice only, with the CONSTRAINT that the travel should occur in the same day (i.e. departure and arrival taking place on the same day), compute & print:
 ;1.	Name of solution (first or NO valid solution exists in the same day);
 ;2.	Arrival time to the swap-point (if a valid solution exists);
 ;3.	Departure time from the swap-point (if a valid solution exists);
 ;4.	Arrival time to the office (if a valid solution exists).
 ;Please observe that there could be cases when no solution exists, e.g. because the departure time or arrival time to the swap-point are too much late and no further ride exists in the same day.
 ;
-;Item 3: POINTS  28. Refer to the two choices with the CONSTRAINT that the travel should occur in the same day (i.e. departure and arrival taking place on the same day), compute & print:
+;Item 3: POINTS -> 28. Refer to the two choices with the CONSTRAINT that the travel should occur in the same day (i.e. departure and arrival taking place on the same day), compute & print:
 ;1.	Name of solution (first/second /NO valid solution exists in the same day);
 ;2.	Arrival time to the swap-point (if a valid solution exists);
 ;3.	Departure time from the swap-point (if a valid solution exists);
@@ -39,7 +39,7 @@
 ;5.	The same information of points (2-4) for the other non-chosen but valid solution (if another one exists).
 ;Please observe that there could be cases when no solution exists, e.g. because the departure time or arrival time to the swap-point are too much late and no further ride exists in the same day.
 ;
-;Item 4: POINTS  32. Refer to the two choices, without any constraint/assumption about the travel occurring in the same day (i.e. departure can be on one day and arrival on the following day), compute & print:
+;Item 4: POINTS -> 32. Refer to the two choices, without any constraint/assumption about the travel occurring in the same day (i.e. departure can be on one day and arrival on the following day), compute & print:
 ;1.	Name of solution (first/second);
 ;2.	Arrival time to the swap-point;
 ;3.	Departure time from the swap-point;
@@ -75,7 +75,11 @@
 ;•	It is required to write at class time a short & clear explanation of the algorithm and significant instruction comments.
 ;•	Input-output is not necessary in class-developed solution, but its implementation is mandatory for the oral exam.
 ;•	Minimum score to “pass” this part is 15 (to be averaged with second part and to yield a value at least 18)
-;•	To avoid misunderstandings, please consider that, as in the previous calls of the last 5 years (at least) the final score reflects the overall evaluation of the code, i.e., fatal errors, such as division by zero (etc) make it impossible to reach 30 or larger scores. Specifically, at oral exam, students will request the evaluation of some or all the parts that they have solved; prior proceeding to the correction, the points of the parts to be corrected will be added up and bounded to max 35. The final score, after the correction of students’ requested items, will be “cut off” to 32.
+;•	To avoid misunderstandings, please consider that, as in the previous calls of the last 5 years (at least) the final score reflects
+;   the overall evaluation of the code, i.e., fatal errors, such as division by zero (etc) make it impossible to reach 30 or larger
+;   scores. Specifically, at oral exam, students will request the evaluation of some or all the parts that they have solved; prior
+;   proceeding to the correction, the points of the parts to be corrected will be added up and bounded to max 35. The final score, after
+;   the correction of students’ requested items, will be “cut off” to 32.
 ;
 ;REQUIREMENTS ON THE I/O PART TO BE DONE AT HOME
 ;•	The databases (if any) have to be defined and initialized inside the code; in this case, all data related to the starting time H_LEAVE have to be input from the keyboard (i.e. NOT stored in the array/variables)
