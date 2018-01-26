@@ -212,7 +212,7 @@ ldrb r1,[r1]
 
 /* eor performs the xor, in particular xoring r5 with r5 itself resets that register. mov r6,#0x1 copies
  * 1 inside r6. ldrb r2,[r4,r5] loads a byte from memory at the address provided by the content of r4, the
- * base address, and r5, the offset.*/
+ * base address, plus r5's content, the offset.*/
  
 eor r5,r5
 mov r6,#0x1
